@@ -1,42 +1,30 @@
 
-# -----------------------------
-# Global environment variables
-# -----------------------------
 variable "subscription_id" {
-  description = "Azure Subscription ID used for MAS610 Platform"
+  description = "Azure subscription ID"
   type        = string
-  default     = "f4eb400d-e379-4fb2-a669-5ad89034cc35"
 }
 
 variable "resource_group" {
-  description = "Resource Group where ADF + Databricks reside"
+  description = "Resource group name"
   type        = string
-  default     = "rg-mas610-platform"
 }
 
 variable "location" {
-  description = "Azure region for deployment"
+  description = "Azure region"
   type        = string
-  default     = "eastus"
 }
 
-# -----------------------------
-# Databricks workspace details
-# -----------------------------
 variable "databricks_workspace_id" {
-  description = "Full ARM ID of the Databricks workspace"
+  description = "Databricks workspace ARM ID"
   type        = string
-  default     = "/subscriptions/f4eb400d-e379-4fb2-a669-5ad89034cc35/resourceGroups/rg-mas610-platform/providers/Microsoft.Databricks/workspaces/dbw_analytics"
 }
 
-variable "cluster_name" {
-  description = "Name for Databricks cluster created by Terraform"
+variable "existing_cluster_id" {
+  description = "Existing Databricks cluster ID"
   type        = string
-  default     = "mas610_dev_cluster"
 }
 
 variable "email_notification" {
-  description = "Email address for Databricks job failure notifications"
+  description = "Email for job notifications"
   type        = string
-  default     = "saritha.mpragada@outlook.com"
 }
