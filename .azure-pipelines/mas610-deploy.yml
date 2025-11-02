@@ -1,0 +1,60 @@
+
+trigger:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+# -------------------------------
+# Variables - use your real setup
+# -------------------------------
+variables:
+  subscriptionId: "f4eb400d-e379-4fb2-a669-5ad89034cc35"
+  resourceGroup: "rg-mas610-platform"
+  location: "eastus"
+  databricksWorkspaceId: "/subscriptions/f4eb400d-e379-4fb2-a669-5ad89034cc35/resourceGroups/rg-mas610-platform/providers/Microsoft.Databricks/workspaces/dbw_analytics"
+  clusterName: "mas610_dev_cluster"
+  emailNotification: "saritha.mpragada@outlook.com"
+
+# -------------------------------------------------------
+# Stage 1 - Terraform: deploy Databricks infrastructure
+# -------------------------------------------------------
+stages:
+  - stage: Terraform_Deploy
+    displayName: "Deploy Databricks Infra with Terraform"
+    jobs:
+      - job: Terraform_Apply
+        displayName: "Terraform Plan & Apply"
+        steps:
+          # Step 1: Checkout repo
+          - checkout: self
+            clean: true
+
+          # Step 2: Install Terraform
+          - task: TerraformInstaller@1
+            displayName: "Install Terraform 1.5.7"
+            inputs:
+              terraformVersion: '1.5.7'
+
+          # Step 3: Azure Login using Service Connection
+          - task: AzureCLI@2
+            displayName: "Azure Login and Terraform Apply"
+            inputs:
+              azureSubscription: "AzureServiceConnection"    # name of your service connection in DevOps
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                echo "🌍 Setting up Terraform environment..."
+                cd terraform
+                terraform init
+                terraform plan -out=tfplan
+                terraform apply -auto-approve tfplan
+
+              # Environment variables (from your values)
+              env:
+                ARM_CLIENT_ID: $(DATABRICKS_CLIENT_ID)
+                ARM_CLIENT_SECRET: $(DATABRICKS_CLIENT_SECRET)
+                ARM_TENANT_ID: "6aaeadfe-7abb-4fb2-96c7-d0aa5d9a549a"
+                ARM_SUBSCRIPTION_ID: "f4eb400d-e379-4fb2-a669-5ad89034cc35"
