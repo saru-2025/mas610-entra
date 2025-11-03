@@ -7,13 +7,10 @@ terraform {
       version = ">= 1.30.0"
     }
   }
-   provider_installation {
-    filesystem_mirror {
-      path    = "providers"
-      include = ["databricks/databricks"]
-    }
-    direct {
-      exclude = ["databricks/databricks"]
-    }
-  }
+}
+
+# Configure provider installation method
+provider_meta "databricks" {
+  installation_method = "filesystem"
+  mirror_path        = "providers"
 }
