@@ -1,4 +1,4 @@
-name: Terraform Databricks CI/CD (Automated Stage Execution)
+name: Terraform Databricks CI/CD (Automated Stages)
 
 on:
   push:
@@ -41,10 +41,10 @@ jobs:
         with:
           terraform_version: 1.5.7
 
-      - name: Terraform Validate
+      - name: Terraform Format & Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
-          terraform fmt -check
+          terraform fmt -recursive
           terraform validate
 
   plan:
@@ -64,7 +64,7 @@ jobs:
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -out=tfplan
 
-      - name: Upload Terraform Plan
+      - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
