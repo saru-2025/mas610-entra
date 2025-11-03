@@ -12,8 +12,8 @@ env:
   DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
 jobs:
-    init:
-    name: 1️⃣ Terraform Init
+  init:
+    name: 1️⃣ Terraform Init (Clean + Upgrade)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -24,10 +24,13 @@ jobs:
         with:
           terraform_version: 1.5.7
 
+      # Force clean the provider cache and upgrade
       - name: Terraform Init (clean + upgrade)
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
+          echo "🧹 Cleaning previous provider cache..."
           rm -rf .terraform .terraform.lock.hcl || true
+          echo "🚀 Initializing Terraform with upgrade..."
           terraform init -upgrade
 
   validate:
@@ -46,6 +49,7 @@ jobs:
       - name: Terraform Format & Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
+          echo "🧩 Formatting and validating Terraform configuration..."
           terraform fmt -recursive
           terraform validate
 
@@ -64,7 +68,9 @@ jobs:
 
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform plan -out=tfplan
+        run: |
+          echo "🗺️ Generating Terraform plan..."
+          terraform plan -out=tfplan
 
       - name: Upload Terraform Plan Artifact
         uses: actions/upload-artifact@v4
@@ -94,4 +100,6 @@ jobs:
 
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
-        run: terraform apply -auto-approve tfplan
+        run: |
+          echo "⚙️ Applying Terraform plan..."
+          terraform apply -auto-approve tfplan
