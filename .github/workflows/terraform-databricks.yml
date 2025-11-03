@@ -1,21 +1,10 @@
-name: Terraform Databricks CI/CD (Stage-by-Stage)
+name: Terraform Databricks CI/CD (Automated Stage Execution)
 
 on:
-  workflow_dispatch:
-    inputs:
-      stage:
-        description: "Select stage to run (init / validate / plan / apply)"
-        required: true
-        default: "init"
-        type: choice
-        options:
-          - init
-          - validate
-          - plan
-          - apply
   push:
     branches:
       - main
+  workflow_dispatch:
 
 env:
   TF_WORKING_DIR: terraform
@@ -26,12 +15,15 @@ jobs:
   init:
     name: 1️⃣ Terraform Init
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.stage == 'init' || github.event_name == 'push' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
+
       - name: Terraform Init
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
@@ -40,12 +32,15 @@ jobs:
     name: 2️⃣ Terraform Validate
     runs-on: ubuntu-latest
     needs: init
-    if: ${{ github.event.inputs.stage == 'validate' || github.event_name == 'push' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
+
       - name: Terraform Validate
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: |
@@ -56,27 +51,45 @@ jobs:
     name: 3️⃣ Terraform Plan
     runs-on: ubuntu-latest
     needs: validate
-    if: ${{ github.event.inputs.stage == 'plan' || github.event_name == 'push' }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
+
       - name: Terraform Plan
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -out=tfplan
+
+      - name: Upload Terraform Plan
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: ${{ env.TF_WORKING_DIR }}/tfplan
 
   apply:
     name: 4️⃣ Terraform Apply
     runs-on: ubuntu-latest
     needs: plan
-    if: ${{ github.event.inputs.stage == 'apply' || github.event_name == 'push' }}
     environment: production
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
+
+      - name: Download Terraform Plan
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+          path: ${{ env.TF_WORKING_DIR }}
+
       - name: Terraform Apply
         working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -auto-approve tfplan
