@@ -1,41 +1,82 @@
-name: Terraform Databricks CI/CD
+name: Terraform Databricks CI/CD (Stage-by-Stage)
 
 on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "Select stage to run (init / validate / plan / apply)"
+        required: true
+        default: "init"
+        type: choice
+        options:
+          - init
+          - validate
+          - plan
+          - apply
   push:
     branches:
       - main
-  workflow_dispatch:
+
+env:
+  TF_WORKING_DIR: terraform
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
 jobs:
-  terraform-deploy:
+  init:
+    name: 1️⃣ Terraform Init
     runs-on: ubuntu-latest
-
+    if: ${{ github.event.inputs.stage == 'init' || github.event_name == 'push' }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.7
-
       - name: Terraform Init
-        working-directory: terraform
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform init
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
+  validate:
+    name: 2️⃣ Terraform Validate
+    runs-on: ubuntu-latest
+    needs: init
+    if: ${{ github.event.inputs.stage == 'validate' || github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+      - name: Terraform Validate
+        working-directory: ${{ env.TF_WORKING_DIR }}
+        run: |
+          terraform fmt -check
+          terraform validate
+
+  plan:
+    name: 3️⃣ Terraform Plan
+    runs-on: ubuntu-latest
+    needs: validate
+    if: ${{ github.event.inputs.stage == 'plan' || github.event_name == 'push' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
       - name: Terraform Plan
-        working-directory: terraform
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform plan -out=tfplan
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
+  apply:
+    name: 4️⃣ Terraform Apply
+    runs-on: ubuntu-latest
+    needs: plan
+    if: ${{ github.event.inputs.stage == 'apply' || github.event_name == 'push' }}
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
       - name: Terraform Apply
-        working-directory: terraform
+        working-directory: ${{ env.TF_WORKING_DIR }}
         run: terraform apply -auto-approve tfplan
-        env:
-          DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-          DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
