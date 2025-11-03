@@ -1,7 +1,6 @@
 # ================================================
 # Phase 2 - MAS610 Terraform Job Deployment
 # ================================================
-
 resource "databricks_job" "bronze_ingest_job" {
   name                = "MAS610_Bronze_Load"
   existing_cluster_id = var.existing_cluster_id
@@ -15,4 +14,4 @@ resource "databricks_job" "bronze_ingest_job" {
   }
 
   max_concurrent_runs = 1
-}
+} 
