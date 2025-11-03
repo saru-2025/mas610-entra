@@ -4,7 +4,16 @@ terraform {
   required_providers {
     databricks = {
       source  = "databricks/databricks"
-      version = "~> 1.30.0"
+      version = ">= 1.30.0"
+    }
+  }
+   provider_installation {
+    filesystem_mirror {
+      path    = "providers"
+      include = ["databricks/databricks"]
+    }
+    direct {
+      exclude = ["databricks/databricks"]
     }
   }
 }
