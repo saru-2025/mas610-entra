@@ -1,59 +1,38 @@
-name: 🚀 Promote Dev → Test
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-jobs:
-  sync-to-test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: 🧩 Checkout Dev repo
-        uses: actions/checkout@v4
-
-      - name: ⚙️ Configure Git
-        run: |
-          git config --global user.name "GitHub CI Bot"
-          git config --global user.email "ci-bot@github.com"
-          
-      - name: 🚀 Sync and Push updates to Test repo
+- name: 🚀 Sync and Push updates to Test repo
         env:
-          # Use a variable for the secure URL without exposing the token in subsequent commands
           TEST_REPO_URL: https://saru-2025:${{ secrets.GIT_TEST_TOKEN }}@github.com/saru-2025/mas610-entra-test.git
         
         run: |
           echo "Cloning Test repo history..."
-          # 1. Clone ONLY the .git folder (no files checked out) to avoid 'vanished file' race condition
-          git clone --no-checkout --depth 1 $TEST_REPO_URL test-repo || true
           
+          # Use the fully robust strategy: Clone the Git history only.
+          # We use "set +e" (turn off immediate exit on error) just for the clone 
+          # to ensure code 24 does not fail the step.
+          set +e
+          git clone --no-checkout --depth 1 $TEST_REPO_URL test-repo
+          CLONE_EXIT_CODE=$?
+          set -e # Re-enable immediate exit on error
+          
+          # Check if the clone failed with an unexpected code (e.g., 128 for auth)
+          if [ $CLONE_EXIT_CODE -ne 0 ] && [ $CLONE_EXIT_CODE -ne 24 ]; then
+            echo "Error: Git clone failed with UNEXPECTED exit code $CLONE_EXIT_CODE."
+            exit 1
+          fi
+
+          echo "✅ Git clone completed (warning/code 24 ignored)."
+
           # Change directory to the newly cloned test-repo
           cd test-repo
-          
-          # 2. Check out the main branch (now the .git folder is stable)
           git checkout main
-          
-          # Move back to the root directory where the Dev files are
-          cd .. 
-          
+          cd .. # Move back to the root directory
+
           echo "Running rsync to copy Dev contents over Test repo..."
-          # 3. Use rsync to copy ALL files from the Dev repo (./) to the Test repo (test-repo/)
-          # --delete ensures files deleted in Dev are deleted in Test.
-          # --exclude='.git' is VITAL to avoid overwriting the Git history we just cloned.
           rsync -av --delete --exclude='.git' ./ test-repo/
 
           # 4. Commit and Push the changes from the Test repo directory
           cd test-repo
-          
-          echo "Checking for changes..."
           git add .
-          
-          # Commit only if there are changes; '|| true' prevents failure if no changes exist
           git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "✅ No new changes to commit"
-          
-          # Push the changes. '|| true' prevents failure if the branch is already up to date, 
-          # though with a commit above this is less likely to be needed.
           git push origin main
           
           echo "🎉 Sync completed successfully!"
