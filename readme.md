@@ -1,179 +1,87 @@
+# MAS610 – Azure Data Platform CI/CD
 
-# 💼 MAS610-ENTRA: Azure Regulatory Data Platform
-
-### 📘 Overview
-**MAS610-ENTRA** is an end-to-end regulatory data platform built on **Azure Data Lake Gen2**, **Databricks**, and **Terraform** to automate **Monetary Authority of Singapore (MAS)** reporting — specifically returns **MAS 610, MAS 309, MAS 652, MAS 640**, and **MAS 1003/1303**, aligned to **Basel III/IV** frameworks.
-
-The solution integrates ingestion, transformation, data quality, reconciliation, and CI/CD automation to deliver MAS-compliant financial, risk, and compliance reporting with full lineage, auditability, and scalability.
+This repository contains Databricks notebooks and Azure Data Factory (ADF) JSON definitions for MAS 610 regulatory reporting.
 
 ---
 
-## 🧠 Key Objectives
-- Automate **Regulatory Reporting** for MAS 610 and related Basel III/IV returns.  
-- Establish a **Medallion Architecture (Bronze / Silver / Gold)** on Azure Data Lake.  
-- Implement **Data Quality (DQ) & Reconciliation** frameworks for accuracy and completeness.  
-- Enable **Model Governance** for PD/LGD/EAD and liquidity models via Databricks MLflow.  
-- Provide **Continuous Integration / Deployment (CI/CD)** and **Infrastructure-as-Code (IaC)** using Terraform and GitHub Actions.  
+## 🚀 Architecture Overview
 
----
+* **ADF Dev:** adf-data-platform
+* **Databricks Dev:** dbw_analytics_dev
+* **GitHub Dev Repo:** saru-2025/mas610-entra
+* **Test Environment:** adf-data-platform-test + dbw_analytics_test
+* **GitHub Test Repo:** saru-2025/mas610-entra-test
 
-## ⚙️ Architecture Overview
-```text
-Source Systems → ADF Ingestion (Bronze) → Databricks Transformations (Silver) →  
-Regulatory Modeling & Aggregation (Gold) → Power BI / MAS Returns → DCG Submission
-````
-
-**Core Azure Components:**
-
-* **Azure Data Lake Gen2** – centralized data storage
-* **Azure Databricks** – PySpark transformation and ML governance
-* **Azure Data Factory (ADF)** – orchestration and scheduling
-* **Azure Synapse** – analytical layer and SQL-based aggregation
-* **Azure Purview** – lineage and governance
-* **Azure Key Vault** – secrets management
-* **Terraform** – infrastructure automation
-* **Power BI** – DQ dashboards and MAS report visualizations
+Shared services: **Key Vault (kv-stdataeng)** and **ADLS Gen2 (stdatahubsg)**
 
 ---
 
 ## 🧩 Repository Structure
 
 ```
-mas610-entra/
-│
-├── databricks/
-│   ├── notebooks/
-│   │   ├── MAS610_Bronze_Load.py
-│   │   ├── MAS610_Silver_Transform.py
-│   │   ├── MAS610_Gold_Model.py
-│   │   ├── DQ_Validation.py
-│   │   └── Reconciliation_Checks.py
-│   └── jobs/
-│       ├── eventhub_producer.py
-│       ├── consumer_streaming_riskfeed.py
-│       └── pipeline_trigger_config.json
-│
-├── adf_pipelines/
-│   ├── pipeline_ingestion.json
-│   ├── pipeline_dq_validation.json
-│   ├── pipeline_reconciliation.json
-│   └── trigger_on_new_trade_file.json
-│
-├── sql_warehouse/
-│   ├── mas610_gold_views.sql
-│   ├── mas652_large_exposure.sql
-│   ├── dq_results_validation.sql
-│   └── reconciliation_metrics.sql
-│
-├── .gitignore
-├── README.md
-└── LICENSE
+.github/workflows/          # CI/CD workflows
+├── dev-to-test-sync.yml
+└── adf-test-deploy.yml
+notebooks/                  # Databricks notebooks
+├── bronze/
+├── silver/
+└── gold/
+dataset/                    # ADF datasets
+linkedService/              # ADF linked services
+pipeline/                   # ADF pipelines
+trigger/                    # ADF triggers
+factory/                    # ADF factory metadata and ARM templates
+publish_config.json
 ```
 
 ---
 
-## 🚀 Quick Start
+## ⚙️ Dev → Test Promotion Flow
 
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/saru-2025/mas610-entra.git
-cd mas610-entra
-```
-
-### 2. Configure Azure authentication
-
-```bash
-az login --tenant "<tenant-id>"
-az account set --subscription "<subscription-id>"
-```
-
-### 3. Deploy infrastructure using Terraform
-
-```bash
-cd terraform
-terraform init
-terraform plan
-terraform apply -auto-approve
-```
-
-### 4. Configure Databricks CLI (with AAD token)
-
-```bash
-az login
-token_response=$(az account get-access-token --resource 2ff814a6-3304-4ab8-85cb-cd0e6f879c1d)
-export DATABRICKS_AAD_TOKEN=$(jq .accessToken -r <<< "$token_response")
-
-databricks configure --aad-token
-```
-
-### 5. Run notebooks for ingestion and transformation
-
-```bash
-databricks workspace import_dir ./databricks/notebooks /Workspace/Shared/MAS610
-databricks jobs create --json-file ./databricks/jobs/pipeline_trigger_config.json
-```
+1. Develop in Databricks Dev or ADF Dev.
+2. Commit to the `main` branch of `mas610-entra`.
+3. GitHub Actions `dev-to-test-sync.yml` copies changes to `mas610-entra-test`.
+4. Databricks Test workspace (auto-linked to Test repo) syncs notebooks.
+5. `adf-test-deploy.yml` deploys published ADF JSON to ADF Test.
 
 ---
 
-## 🧮 Exercises (from Hands-On Coding Assessment)
+## 🔐 Secrets Required (in GitHub → Settings → Actions → Secrets)
 
-| Exercise                               | Description                                                                              | Skill Area           |
-| -------------------------------------- | ---------------------------------------------------------------------------------------- | -------------------- |
-| **1. Real-Time Risk Feed**             | Kafka/EventHub → Databricks Structured Streaming (5-min aggregation, DLQ, DQ validation) | Streaming + ETL      |
-| **2. Regulatory Data Model (MAS 610)** | Transform `accounts`, `loans`, `collateral` CSVs → MAS 610 Balance Sheet                 | SQL/PySpark Modeling |
-| **3. CI/CD & IaC**                     | Automate Databricks deployment + Terraform cluster provisioning                          | DevOps & Automation  |
-
----
-
-## 🧠 Data Quality & Reconciliation
-
-* **DQ Rule Categories:** Completeness, Accuracy, Consistency, Timeliness
-* **Rule Repository:** `dq_rule_master` (Delta Table)
-* **Execution Framework:** ADF + Databricks Notebooks
-* **Monitoring:** Power BI dashboards showing DQ scores, failed rules, and reconciliation variance (<0.1%)
+| Name                    | Used For                         |
+| ----------------------- | -------------------------------- |
+| `GITHUB_TEST_TOKEN`     | Push Dev repo → Test repo        |
+| `AZURE_CLIENT_ID`       | Service Principal for ADF deploy |
+| `AZURE_CLIENT_SECRET`   | SP secret                        |
+| `AZURE_TENANT_ID`       | Tenant ID                        |
+| `AZURE_SUBSCRIPTION_ID` | Azure subscription               |
 
 ---
 
-## 🧰 Governance & Security
+## 🧠 Developer Notes
 
-| Layer           | Control                      | Azure Service              |
-| --------------- | ---------------------------- | -------------------------- |
-| Identity        | Role-based access (RBAC/MFA) | Azure AD                   |
-| Data Encryption | AES-256 / TLS 1.2+           | ADLS Gen2 + Key Vault      |
-| Audit & Lineage | End-to-end traceability      | Azure Purview              |
-| CI/CD Security  | Secrets scanning & approvals | GitHub Actions + Key Vault |
-| Compliance      | MAS TRM, PDPA, ISO 27001     | Azure Policy + Sentinel    |
+* Always create feature branches in Databricks, merge via PR → `main`.
+* Do **not** hard-code secrets in notebooks — use Key Vault scope `kv-stdataeng`.
+* ADF publishing creates ARM templates under `factory/`.
 
 ---
 
-## 📊 Reporting and Visualization
+## 🔄 Automation Summary
 
-* Power BI dashboards: DQ Scores, MAS Returns, Reconciliation Variance
-* SQL Warehouse queries for MAS 610, 309, 652, 640
-* Data exported as CSV/XML templates for MAS Data Collection Gateway (DCG)
-
----
-
-## 🧱 Future Roadmap
-
-* ✅ Real-time MAS 309 liquidity monitoring via Event Grid
-* 🤖 AI-driven DQ anomaly detection using Databricks AutoML
-* 🌏 Cross-regulatory schema harmonization (MAS, HKMA, BNM)
-* 🧾 Explainable AI (XAI) for PD/LGD and liquidity models
-* 🌱 ESG data integration and sustainability metrics
+* **Databricks notebooks** are synced from Dev to Test via GitHub branch linkage.
+* **ADF JSONs** are automatically deployed using GitHub Actions YAML.
+* The Test environment always reflects the last validated Dev release.
 
 ---
 
-## 🧑‍💻 Contributors
+## 🛠️ Next Steps
 
-**Author:** Saritha Mantripragada
-**Role:** Senior Data Engineer / Lead Data Architect
-**Focus:** Azure + Databricks Regulatory Data Platforms for BFSI
+1. Verify Dev and Test repo names in YAML files.
+2. Set required secrets in GitHub Actions.
+3. Run workflow manually (or commit to main) to validate deployment.
 
 ---
 
-## 📜 License
-
-This repository is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.
-
+**Author:** Saritha Mpragada
+**Version:** CI/CD Integrated Setup
+**Date:** November 2025
