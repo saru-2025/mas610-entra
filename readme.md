@@ -41,12 +41,6 @@ Regulatory Modeling & Aggregation (Gold) → Power BI / MAS Returns → DCG Subm
 ```
 mas610-entra/
 │
-├── terraform/                # IaC scripts for provisioning Azure resources
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   └── provider.tf
-│
 ├── databricks/
 │   ├── notebooks/
 │   │   ├── MAS610_Bronze_Load.py
