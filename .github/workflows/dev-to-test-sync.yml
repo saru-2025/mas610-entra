@@ -24,7 +24,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TEST_TOKEN }}
         run: |
           git clone $TEST_REPO test-repo
-          rsync -av --delete \
+          rsync -av --delete --ignore-errors \
             --exclude '.git' \
             --exclude '.github' \
             --exclude '.DS_Store' \
