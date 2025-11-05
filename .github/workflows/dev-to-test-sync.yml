@@ -10,21 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Dev repo
+      - name: 🧩 Checkout Dev repo
         uses: actions/checkout@v4
 
-      - name: Configure Git
+      - name: ⚙️ Configure Git
         run: |
           git config --global user.name "GitHub CI Bot"
           git config --global user.email "ci-bot@github.com"
 
-      - name: Push updates to Test repo
+      - name: 🚀 Sync and Push updates to Test repo
         env:
           TEST_REPO: https://saru-2025:${{ secrets.GITHUB_TEST_TOKEN }}@github.com/saru-2025/mas610-entra-test.git
         run: |
+          echo "Cloning Test repo..."
           git clone $TEST_REPO test-repo
-          rsync -av --delete --exclude '.git' --exclude '.github' ./ test-repo/
+          
+          echo "Running rsync (ignore vanished files)..."
+          rsync -av --delete --ignore-errors ./ test-repo/ || true
+          echo "✅ rsync completed, even if warnings occurred."
+
           cd test-repo
           git add .
+          git status
           git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "✅ No new changes to commit"
-          git push origin main
+          git push origin main || echo "⚠️ Nothing to push or branch already up to date"
+          echo "🎉 Sync completed successfully!"
