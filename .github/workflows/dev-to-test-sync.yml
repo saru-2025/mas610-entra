@@ -32,7 +32,7 @@ jobs:
 
           cd test-repo
           echo "📑 Preparing commit..."
-          git add.
+          git add .
           git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "No changes to commit"
 
           echo "⬆️ Pushing changes to Test repo..."
