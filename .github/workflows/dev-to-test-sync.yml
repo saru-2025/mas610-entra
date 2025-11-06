@@ -1,6 +1,6 @@
 - name: 🚀 Sync and Push updates to Test repo
         env:
-          TEST_REPO_URL: https://saru-2025:${{ secrets.GIT_TEST_TOKEN }}@github.com/saru-2025/mas610-entra-test.git
+          TEST_REPO_URL: https://saru-2025:${{ secrets.TEST_REPO_PAT }}@github.com/saru-2025/mas610-entra-test.git
         
         run: |
           echo "Cloning Test repo history..."
