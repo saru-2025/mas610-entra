@@ -31,7 +31,7 @@
 
           # 4. Commit and Push the changes from the Test repo directory
           cd test-repo
-          git add .
+          git add.
           git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "✅ No new changes to commit"
           git push origin main
           
