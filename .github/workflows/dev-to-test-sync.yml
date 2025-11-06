@@ -2,8 +2,7 @@ name: 🚀 Promote Dev → Test
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -14,7 +13,7 @@ jobs:
       - name: 🧩 Checkout Dev repo
         uses: actions/checkout@v4
 
-      - name: ⚙️ Configure Git
+      - name: 🛠️ Configure Git
         run: |
           git config --global user.name "GitHub CI Bot"
           git config --global user.email "ci-bot@github.com"
@@ -25,23 +24,21 @@ jobs:
           TEST_TOKEN: ${{ secrets.TEST_REPO_PAT }}
         run: |
           echo "🏗️ Cloning Test repo..."
-          cd ..
-          mv mas610-entra dev-repo
-
-          echo "🔗 Cloning test repository with token..."
           git clone https://x-access-token:${TEST_TOKEN}@github.com/saru-2025/mas610-entra-test.git test-repo
 
           echo "🔄 Syncing files..."
+          # Copy all files from current dev workspace to test-repo (without moving or deleting this repo)
           rsync -av --delete --ignore-errors \
             --exclude '.git' \
             --exclude '.github' \
-            ./dev-repo/ ./test-repo/ || true
+            ./ ./test-repo/ || true
 
-          echo "📦 Committing changes..."
+          echo "📦 Committing changes to Test repo..."
           cd test-repo
           git add .
           git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "✅ No new changes to commit"
 
-          echo "⬆️ Pushing to Test repo..."
+          echo "⬆️ Pushing updates to Test repo..."
           git push https://x-access-token:${TEST_TOKEN}@github.com/saru-2025/mas610-entra-test.git main
+
           echo "🎉 Sync completed successfully!"
