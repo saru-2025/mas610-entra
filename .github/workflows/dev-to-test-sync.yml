@@ -1,38 +1,39 @@
-- name: 🚀 Sync and Push updates to Test repo
-        env:
-          TEST_REPO_URL: https://saru-2025:${{ secrets.TEST_REPO_PAT }}@github.com/saru-2025/mas610-entra-test.git
-        
+name: 🚀 Promote Dev → Test
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  sync-to-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Dev repo
+        uses: actions/checkout@v4
+
+      - name: Configure Git
         run: |
-          echo "Cloning Test repo history..."
-          
-          # Use the fully robust strategy: Clone the Git history only.
-          # We use "set +e" (turn off immediate exit on error) just for the clone 
-          # to ensure code 24 does not fail the step.
-          set +e
-          git clone --no-checkout --depth 1 $TEST_REPO_URL test-repo
-          CLONE_EXIT_CODE=$?
-          set -e # Re-enable immediate exit on error
-          
-          # Check if the clone failed with an unexpected code (e.g., 128 for auth)
-          if [ $CLONE_EXIT_CODE -ne 0 ] && [ $CLONE_EXIT_CODE -ne 24 ]; then
-            echo "Error: Git clone failed with UNEXPECTED exit code $CLONE_EXIT_CODE."
-            exit 1
-          fi
+          git config --global user.name "GitHub CI Bot"
+          git config --global user.email "ci-bot@github.com"
 
-          echo "✅ Git clone completed (warning/code 24 ignored)."
+      - name: Push updates to Test repo
+        env:
+          TEST_REPO: https://github.com/saru-2025/mas610-entra-test.git
+          GITHUB_TOKEN: ${{ secrets.TEST_REPO_PAT }}
+        run: |
+          echo "🌀 Cloning Test repository..."
+          git clone $TEST_REPO test-repo
 
-          # Change directory to the newly cloned test-repo
+          echo "📦 Syncing files from Dev → Test..."
+          rsync -av --delete --exclude '.git' --exclude '.github' ./ test-repo/
+
           cd test-repo
-          git checkout main
-          cd .. # Move back to the root directory
-
-          echo "Running rsync to copy Dev contents over Test repo..."
-          rsync -av --delete --exclude='.git' ./ test-repo/
-
-          # 4. Commit and Push the changes from the Test repo directory
-          cd test-repo
+          echo "📑 Preparing commit..."
           git add.
-          git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "✅ No new changes to commit"
+          git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "No changes to commit"
+
+          echo "⬆️ Pushing changes to Test repo..."
           git push origin main
-          
-          echo "🎉 Sync completed successfully!"
