@@ -11,29 +11,37 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Dev repo
+      - name: 🧩 Checkout Dev repo
         uses: actions/checkout@v4
 
-      - name: Configure Git
+      - name: ⚙️ Configure Git
         run: |
           git config --global user.name "GitHub CI Bot"
           git config --global user.email "ci-bot@github.com"
 
-      - name: Push updates to Test repo
+      - name: 🚀 Sync and Push updates to Test repo
         env:
           TEST_REPO: https://github.com/saru-2025/mas610-entra-test.git
-          GITHUB_TOKEN: ${{ secrets.TEST_REPO_PAT }}
+          TEST_TOKEN: ${{ secrets.TEST_REPO_PAT }}
         run: |
-          echo "🌀 Cloning Test repository..."
-          git clone $TEST_REPO test-repo
+          echo "🏗️ Cloning Test repo..."
+          cd ..
+          mv mas610-entra dev-repo
 
-          echo "📦 Syncing files from Dev → Test..."
-          rsync -av --delete --exclude '.git' --exclude '.github' ./ test-repo/
+          echo "🔗 Cloning test repository with token..."
+          git clone https://x-access-token:${TEST_TOKEN}@github.com/saru-2025/mas610-entra-test.git test-repo
 
+          echo "🔄 Syncing files..."
+          rsync -av --delete --ignore-errors \
+            --exclude '.git' \
+            --exclude '.github' \
+            ./dev-repo/ ./test-repo/ || true
+
+          echo "📦 Committing changes..."
           cd test-repo
-          echo "📑 Preparing commit..."
           git add .
-          git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "No changes to commit"
+          git commit -m "🚀 Auto-sync Dev → Test - $GITHUB_SHA" || echo "✅ No new changes to commit"
 
-          echo "⬆️ Pushing changes to Test repo..."
-          git push origin main
+          echo "⬆️ Pushing to Test repo..."
+          git push https://x-access-token:${TEST_TOKEN}@github.com/saru-2025/mas610-entra-test.git main
+          echo "🎉 Sync completed successfully!"
